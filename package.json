@@ -1,0 +1,13 @@
+{
+  "name": "web-api",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "tien.tdev",
+  "main": "src/server.js",
+  "author": "tien.tdev",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
