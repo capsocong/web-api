@@ -1,28 +1,49 @@
+/* eslint-disable no-console */
 
 import express from 'express'
-import { mapOrder } from '~/utils/sorts.js'
+import exitHook from 'async-exit-hook'
+import { CONNECT_DB, GET_DB, CLOSE_DB } from '~/config/mongodb'
+import { env } from '~/config/environment'
+const START_SERVER = () => {
+  const app = express()
 
-const app = express()
+  app.get('/', async (req, res) => {
+    // console.log(await GET_DB().listCollections().toArray())
+    res.end('<h1>Hello World! tien dep trai qua</h1><hr>')
+  })
 
-const hostname = 'localhost'
-const port = 8017
+  app.listen(env.APP_PORT, env.APP_HOST, () => {
+    // eslint-disable-next-line no-console
+    console.log(`server running at http://${env.APP_PORT}:${env.APP_HOST}/`)
+  })
 
-app.get('/', (req, res) => {
-  // Test Absolute import mapOrder
-  // eslint-disable-next-line no-console
-  console.log(mapOrder(
-    [{ id: 'id-1', name: 'One' },
-      { id: 'id-2', name: 'Two' },
-      { id: 'id-3', name: 'Three' },
-      { id: 'id-4', name: 'Four' },
-      { id: 'id-5', name: 'Five' }],
-    ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-    'id'
-  ))
-  res.end('<h1>Hello World!</h1><hr>')
-})
+  exitHook(() => {
+    console.log('server shutting down...')
+    CLOSE_DB()
+    console.log('MongoDB connection closed')
+  })
+}
+(async () => {
+  try {
+    console.log('1.Connecting to MongoDB Atlas')
+    await CONNECT_DB()
+    console.log('2.Connected to MongoDB Atlas')
+    // start server khi kết nối thành công
+    console.log('3.Starting server')
+    START_SERVER()
+  } catch (error) {
+    console.log(error)
+    process.exit(0)
+  }
+})()
+// CONNECT_DB()
+//   .then(() => {
+//     console.log('Connected to MongoDB Atlas')
+//   })
+//   .then( () => { START_SERVER() } )
 
-app.listen(port, hostname, () => {
-  // eslint-disable-next-line no-console
-  console.log(`server running at http://${hostname}:${port}`)
-})
+//   .catch( error => {
+//     console.error('Error connecting to MongoDB Atlas:', error)
+//     process.exit(0)
+//   })
+
