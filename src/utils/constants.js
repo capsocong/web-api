@@ -3,11 +3,8 @@ import { env } from '~/config/environment'
 
 // Những domain được phép truy cập tới tài nguyên của Server
 export const WHITELIST_DOMAINS = [
-
-  'https://wms-web-sigma.vercel.app/'
-
+  'https://wms-web-sigma.vercel.app'
 ]
-
 export const BOARD_TYPES = {
   PUBLIC: 'public',
   PRIVATE: 'private'
