@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken'
 
-
 // function generateToken 3 tham số
 // userInfo
 // secretSignature: Chữ ký bí mật (một chuỗi string)

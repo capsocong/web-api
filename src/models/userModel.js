@@ -1,19 +1,20 @@
 import { GET_DB } from '~/config/mongodb'
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
-import { EMAIL_RULE, EMAIL_RULE_MESSAGE} from '~/utils/validators'
+import { EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
 
 const USER_ROLES = {
   CLIENT: 'client',
   ADMIN: 'admin'
 }
+
 const USER_COLLECTION_NAME = 'users'
 const USER_COLLECTION_SCHEMA = Joi.object({
   email: Joi.string().required().pattern(EMAIL_RULE).message(EMAIL_RULE_MESSAGE),
   password: Joi.string().required(),
   //username cat ra tu email nen se khong unique boi vi se co nhung email trung nhau
   username: Joi.string().required().trim().strict(),
-  displayname: Joi.string().required().trim().strict(),
+  displayName: Joi.string().required().trim().strict(),
   avatar: Joi.string().default(null),
   role: Joi.string().valid(USER_ROLES.CLIENT, USER_ROLES.ADMIN).default(USER_ROLES.CLIENT),
 
@@ -60,7 +61,7 @@ const update = async (userId, updateData) => {
     const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(userId) },
       { $set: updateData },
-      { ReturnDocument: 'after' }
+      { returnDocument: 'after' }
     )
     return result
   } catch (error) { throw new Error(error) }

@@ -1,5 +1,3 @@
-
-
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
@@ -61,6 +59,18 @@ const pushCardOrderIds = async (card) => {
   } catch (error) { throw new Error(error) }
 }
 
+// Nhiệm vụ của func này là xóa một giá trị cardId ra khỏi mảng cardOrderIds
+const pullCardOrderIds = async (card) => {
+  try {
+    const result = await GET_DB().collection(COLUMN_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(card.columnId) },
+      { $pull: { cardOrderIds: new ObjectId(card._id) } },
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 const update = async (columnId, updateData) => {
   try {
     // Lọc những field mà chúng ta không cho phép cập nhật linh tinh
@@ -91,12 +101,21 @@ const deleteOneById = async (columnId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const deleteManyByBoardId = async (boardId) => {
+  try {
+    const result = await GET_DB().collection(COLUMN_COLLECTION_NAME).deleteMany({ boardId: new ObjectId(boardId) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const columnModel = {
   COLUMN_COLLECTION_NAME,
   COLUMN_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   pushCardOrderIds,
+  pullCardOrderIds,
   update,
-  deleteOneById
+  deleteOneById,
+  deleteManyByBoardId
 }

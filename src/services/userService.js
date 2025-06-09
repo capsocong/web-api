@@ -10,6 +10,8 @@ import { BrevoProvider } from '~/providers/BrevoProvider'
 import { env } from '~/config/environment'
 import { JwtProvider } from '~/providers/JwtProvider'
 
+import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+
 const createNew = async (reqBody) => {
   try {
     // kiem tra xem email da ton tai chua
@@ -21,7 +23,7 @@ const createNew = async (reqBody) => {
       email: reqBody.email,
       password: bcrypt.hashSync(reqBody.password, 8), // tham số thứ 2 là độ phức tạp của password, giá trị càng cao băm càng lâu
       username: nameFromEmail,
-      displayname: nameFromEmail,
+      displayName: nameFromEmail,
       verifyToken: uuidv4()
     }
     // luu thong tin user vao database
@@ -94,16 +96,76 @@ const login = async (reqBody) => {
     )
     const refreshToken = await JwtProvider.generateToken(
       userInfo,
-      env.ACCESS_TOKEN_SECRET_SIGNATURE,
-      env.ACCESS_TOKEN_LIFE
+      env.REFRESH_TOKEN_SECRET_SIGNATURE,
+      env.REFRESH_TOKEN_LIFE
+      // 15
     )
     // trả về thông tin người dùng kem 2 loại token
     return { accessToken, refreshToken, ...pickUserFields(existUser) }
   } catch (error) {throw error}
 }
+const refreshToken = async (clientRefreshToken) => {
+  try {
+    // b1 giai ma refreshtoken xem co hop le hay khong
+    const decodedRefreshToken = await JwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
+    console.log('🚀 ~ refreshToken ~ decodedRefreshToken:', decodedRefreshToken)
+    // lay thong tin user tu refresh token
+    const userInfo = {
+      _id: decodedRefreshToken._id,
+      email: decodedRefreshToken.email
+    }
+    // tao access token moi
+    const newAccessToken = await JwtProvider.generateToken(
+      userInfo,
+      env.ACCESS_TOKEN_SECRET_SIGNATURE,
+      env.ACCESS_TOKEN_LIFE
+      // 5
+    )
+    return { accessToken: newAccessToken }
+  } catch (error) {throw error}
+}
+const update = async (userId, reqBody, userAvatarFile) => {
+  try {
+    const existUser = await userModel.findOneById(userId)
+    if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'user not found')
+    if (!existUser.isActive) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'your account is not active')
+    }
+    // khởi tạo kết quả updated User ban đầu là empty
+    let updatedUser = {}
+    // case change password
+    if (reqBody.current_password && reqBody.new_password) {
+      // ktra current_password
+      if (!bcrypt.compareSync(reqBody.current_password, existUser.password)) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'current_password is not correct')
+      }
+      // nếu current_password đúng thì băm mật khẩu mới rồi gửi lại vào db
+      updatedUser = await userModel.update(existUser._id, {
+        password: bcrypt.hashSync(reqBody.new_password, 8)
+      })
+    } else if (userAvatarFile) {
+      // update file lên cloud storage cloudinary
+      const uploadResult = await CloudinaryProvider.streamUpload(userAvatarFile.buffer, 'users')
+      console.log('🚀 ~ update ~ uploadResult:', uploadResult)
+      // lưu lại url của file ảnh vào database
+      updatedUser = await userModel.update(existUser._id, {
+        avatar: uploadResult.secure_url
+      })
+    } else {
+      // update các thông tin displayName
+      // console.log('🚀 ~ update ~ reqBody:', reqBody )
+      updatedUser = await userModel.update(existUser._id, reqBody)
+      // console.log('🚀 ~ update ~ updatedUser:', updatedUser)
+    }
+    // console.log('🚀 ~ update ~ updatedUser:', updatedUser)
+    return pickUserFields(updatedUser)
+  } catch (error) {throw error}
 
+}
 export const userService = {
   createNew,
   verifyAccount,
-  login
+  login,
+  refreshToken,
+  update
 }
