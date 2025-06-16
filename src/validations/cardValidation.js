@@ -20,7 +20,11 @@ const createNew = async (req, res, next) => {
 const update = async (req, res, next) => {
   const correctCondition = Joi.object({
     title: Joi.string().min(3).max(50).trim().strict(),
-    description: Joi.string().optional()
+    description: Joi.string().optional(),
+    labels: Joi.array().items({
+      name: Joi.string().required().min(1).max(30).trim(),
+      color: Joi.string().required().pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).message('Color must be a valid HEX color code')
+    }).optional()
   })
 
   try {

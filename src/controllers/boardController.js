@@ -66,11 +66,34 @@ const deleteItem = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const updateMemberRole = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const { id: boardId, memberId } = req.params
+    const { role } = req.body
+    
+    const result = await boardService.updateMemberRole(userId, boardId, memberId, role)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
+const removeMember = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const { id: boardId, memberId } = req.params
+    
+    const result = await boardService.removeMember(userId, boardId, memberId)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const boardController = {
   createNew,
   getDetails,
   update,
   moveCardToDifferentColumn,
   getBoards,
-  deleteItem
+  deleteItem,
+  updateMemberRole,
+  removeMember
 }

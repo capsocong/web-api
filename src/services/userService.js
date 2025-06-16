@@ -52,13 +52,13 @@ const verifyAccount = async (reqBody) => {
     // query user trong db
     const existUser = await userModel.findOneByEmail(reqBody.email)
     // check user exist
-    if (!existUser) { throw new ApiError(StatusCodes.NOT_FOUND, 'user not found')}
+    if (!existUser) { throw new ApiError(StatusCodes.NOT_FOUND, 'không tìm thấy người dùng')}
     if (existUser.isActive) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'your account already active')
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'tài khoản của bạn đã được xác thực')
     }
     // check token
     if (existUser.verifyToken !== reqBody.token?.trim()) {
-      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid token')
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'token không hợp lệ ')
     }
     // update data
     const updateData = {
@@ -75,17 +75,15 @@ const verifyAccount = async (reqBody) => {
 const login = async (reqBody) => {
   try {
     const existUser = await userModel.findOneByEmail(reqBody.email)
-    if (!existUser) { throw new ApiError(StatusCodes.NOT_FOUND, 'user not found')}
+    if (!existUser) { throw new ApiError(StatusCodes.NOT_FOUND, 'không tìm thấy người dùng')}
     if (!existUser.isActive) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'your account is not active')
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'tài khoản của bạn chưa được xác thực')
     }
     const comparedPassword = bcrypt.compareSync(reqBody.password, existUser.password)
     if (!comparedPassword) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'your email or password is not correct')
-    }
-
-    // thông tin đính kèm cho user trong JWT gồm _id và email của user
-    const userInfo = { _id: existUser._id, email: existUser.email }
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'email hoặc mật khẩu không đúng')
+    }    // thông tin đính kèm cho user trong JWT gồm _id, email và role của user
+    const userInfo = { _id: existUser._id, email: existUser.email, role: existUser.role }
     // Tạo token cho người dùng trả về phía client
     // tạo ra 2 loại token: access token và refresh token
     const accessToken = await JwtProvider.generateToken(
@@ -109,10 +107,18 @@ const refreshToken = async (clientRefreshToken) => {
     // b1 giai ma refreshtoken xem co hop le hay khong
     const decodedRefreshToken = await JwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
     console.log('🚀 ~ refreshToken ~ decodedRefreshToken:', decodedRefreshToken)
-    // lay thong tin user tu refresh token
+    
+    // Lấy thông tin user mới nhất từ database để có role chính xác
+    const existUser = await userModel.findOneById(decodedRefreshToken._id)
+    if (!existUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy người dùng')
+    }
+    
+    // lay thong tin user tu database với role mới nhất
     const userInfo = {
-      _id: decodedRefreshToken._id,
-      email: decodedRefreshToken.email
+      _id: existUser._id,
+      email: existUser.email,
+      role: existUser.role
     }
     // tao access token moi
     const newAccessToken = await JwtProvider.generateToken(
@@ -127,9 +133,9 @@ const refreshToken = async (clientRefreshToken) => {
 const update = async (userId, reqBody, userAvatarFile) => {
   try {
     const existUser = await userModel.findOneById(userId)
-    if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'user not found')
+    if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'không tìm thấy người dùng')
     if (!existUser.isActive) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'your account is not active')
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'tài khoản của bạn chưa được xác thực')
     }
     // khởi tạo kết quả updated User ban đầu là empty
     let updatedUser = {}
@@ -137,7 +143,7 @@ const update = async (userId, reqBody, userAvatarFile) => {
     if (reqBody.current_password && reqBody.new_password) {
       // ktra current_password
       if (!bcrypt.compareSync(reqBody.current_password, existUser.password)) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'current_password is not correct')
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'mật khẩu hiện tại không đúng')
       }
       // nếu current_password đúng thì băm mật khẩu mới rồi gửi lại vào db
       updatedUser = await userModel.update(existUser._id, {

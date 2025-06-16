@@ -53,20 +53,6 @@ const getDetails = async (userId, boardId) => {
 
 const update = async (userId, boardId, reqBody) => {
   try {
-    // Kiểm tra board có tồn tại và user có quyền owner không
-    const board = await boardModel.findOneById(boardId)
-    if (!board) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found')
-    }
-    
-    const isOwner = board.ownerIds.some(ownerId =>
-      ownerId.toString() === userId.toString()
-    )
-    
-    if (!isOwner) {
-      throw new ApiError(StatusCodes.FORBIDDEN, 'Only board owners can update this board')
-    }
-    
     const updateData = {
       ...reqBody,
       updatedAt: Date.now()
@@ -130,11 +116,98 @@ const deleteItem = async (boardId) => {
   } catch (error) { throw error }
 }
 
+const updateMemberRole = async (userId, boardId, memberId, role) => {
+  try {
+    // Kiểm tra xem board có tồn tại và user có quyền owner không
+    const board = await boardModel.findOneById(boardId)
+    if (!board) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
+
+    // Kiểm tra quyền owner
+    const isOwner = board.ownerIds.some(ownerId => ownerId.toString() === userId.toString())
+    if (!isOwner) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Only board owners can manage member roles')
+    }
+
+    // Kiểm tra member có tồn tại trong board không
+    const allMemberIds = [...board.ownerIds, ...board.memberIds].map(id => id.toString())
+    if (!allMemberIds.includes(memberId)) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Member not found in this board')
+    }
+
+    // Không thể thay đổi role của chính mình
+    if (userId === memberId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot change your own role')
+    }
+
+    // Chỉ hỗ trợ promote/demote giữa owner và member
+    if (role === 'owner') {
+      // Promote member to owner
+      await boardModel.promoteToOwner(boardId, memberId)
+    } else if (role === 'member') {
+      // Demote owner to member (chỉ khi có ít nhất 2 owners)
+      if (board.ownerIds.length <= 1) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot demote the last owner')
+      }
+      await boardModel.demoteToMember(boardId, memberId)
+    } else {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid role. Only "owner" and "member" are supported')
+    }
+
+    // Trả về board đã cập nhật
+    const updatedBoard = await boardModel.getDetails(userId, boardId)
+    return updatedBoard
+  } catch (error) { throw error }
+}
+
+const removeMember = async (userId, boardId, memberId) => {
+  try {
+    // Kiểm tra xem board có tồn tại và user có quyền owner không
+    const board = await boardModel.findOneById(boardId)
+    if (!board) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
+
+    // Kiểm tra quyền owner
+    const isOwner = board.ownerIds.some(ownerId => ownerId.toString() === userId.toString())
+    if (!isOwner) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Only board owners can remove members')
+    }
+
+    // Kiểm tra member có tồn tại trong board không
+    const allMemberIds = [...board.ownerIds, ...board.memberIds].map(id => id.toString())
+    if (!allMemberIds.includes(memberId)) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Member not found in this board')
+    }
+
+    // Không thể xóa chính mình
+    if (userId === memberId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot remove yourself from the board')
+    }
+
+    // Không thể xóa owner cuối cùng
+    const isTargetOwner = board.ownerIds.some(ownerId => ownerId.toString() === memberId)
+    if (isTargetOwner && board.ownerIds.length <= 1) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Cannot remove the last owner')
+    }
+
+    // Xóa member khỏi board
+    await boardModel.removeMember(boardId, memberId)
+
+    // Trả về board đã cập nhật
+    const updatedBoard = await boardModel.getDetails(userId, boardId)
+    return updatedBoard
+  } catch (error) { throw error }
+}
+
 export const boardService = {
   createNew,
   getDetails,
   update,
   moveCardToDifferentColumn,
   getBoards,
-  deleteItem
+  deleteItem,
+  updateMemberRole,
+  removeMember
 }

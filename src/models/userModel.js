@@ -66,12 +66,43 @@ const update = async (userId, updateData) => {
     return result
   } catch (error) { throw new Error(error) }
 }
+
+const getAllUsersForAdmin = async (query, skip, limit) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME)
+      .find({ ...query, _destroy: false })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const countUsers = async (query) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME)
+      .countDocuments({ ...query, _destroy: false })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const deleteOneById = async (userId) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).deleteOne({ _id: new ObjectId(userId) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const userModel = {
   USER_COLLECTION_NAME,
   USER_COLLECTION_SCHEMA,
+  USER_ROLES,
   createNew,
   findOneById,
   findOneByEmail,
-  update
-
+  update,
+  getAllUsersForAdmin,
+  countUsers,
+  deleteOneById
 }

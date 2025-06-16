@@ -232,6 +232,50 @@ const deleteOneById = async (boardId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const promoteToOwner = async (boardId, memberId) => {
+  try {
+    const result = await GET_DB().collection(BOARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(boardId) },
+      {
+        $pull: { memberIds: new ObjectId(memberId) },
+        $push: { ownerIds: new ObjectId(memberId) }
+      },
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const demoteToMember = async (boardId, ownerId) => {
+  try {
+    const result = await GET_DB().collection(BOARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(boardId) },
+      {
+        $pull: { ownerIds: new ObjectId(ownerId) },
+        $push: { memberIds: new ObjectId(ownerId) }
+      },
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const removeMember = async (boardId, memberId) => {
+  try {
+    const result = await GET_DB().collection(BOARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(boardId) },
+      {
+        $pull: {
+          ownerIds: new ObjectId(memberId),
+          memberIds: new ObjectId(memberId)
+        }
+      },
+      { returnDocument: 'after' }
+    )
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_COLLECTION_NAME,
   BOARD_COLLECTION_SCHEMA,
@@ -243,5 +287,8 @@ export const boardModel = {
   pullColumnOrderIds,
   getBoards,
   pushMembersIds,
-  deleteOneById
+  deleteOneById,
+  promoteToOwner,
+  demoteToMember,
+  removeMember
 }

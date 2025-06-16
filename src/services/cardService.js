@@ -1,6 +1,9 @@
 import { cardModel } from '~/models/cardModel'
 import { columnModel } from '~/models/columnModel'
+import { boardModel } from '~/models/boardModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import ApiError from '~/utils/ApiError'
+import { StatusCodes } from 'http-status-codes'
 const createNew = async (reqBody) => {
   try {
     // Xử lý logic dữ liệu tùy đặc thù dự án
@@ -58,9 +61,78 @@ const deleteItem = async (cardId) => {
     return { message: 'Card deleted successfully' }
   } catch (error) { throw error }
 }
+const assignMember = async (userId, cardId, memberId) => {
+  try {
+    // Lấy thông tin card
+    const targetCard = await cardModel.findOneById(cardId)
+    if (!targetCard) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Card not found!')
+    }
+
+    // Lấy thông tin board để kiểm tra quyền
+    const board = await boardModel.findOneById(targetCard.boardId.toString())
+    if (!board) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
+
+    // Kiểm tra user có phải owner của board không
+    const isOwner = board.ownerIds.some(ownerId => ownerId.toString() === userId.toString())
+    if (!isOwner) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Only board owners can assign members to cards')
+    }
+
+    // Kiểm tra member có thuộc board không
+    const allBoardMemberIds = [...board.ownerIds, ...board.memberIds].map(id => id.toString())
+    if (!allBoardMemberIds.includes(memberId)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'User is not a member of this board')
+    }
+
+    // Kiểm tra member đã được assign chưa
+    if (targetCard.memberIds.includes(memberId)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Member is already assigned to this card')
+    }
+
+    // Assign member vào card
+    const updatedCard = await cardModel.assignMember(cardId, memberId)
+    return updatedCard
+  } catch (error) { throw error }
+}
+
+const unassignMember = async (userId, cardId, memberId) => {
+  try {
+    // Lấy thông tin card
+    const targetCard = await cardModel.findOneById(cardId)
+    if (!targetCard) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Card not found!')
+    }
+
+    // Lấy thông tin board để kiểm tra quyền
+    const board = await boardModel.findOneById(targetCard.boardId.toString())
+    if (!board) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
+    }
+
+    // Kiểm tra user có phải owner của board không
+    const isOwner = board.ownerIds.some(ownerId => ownerId.toString() === userId.toString())
+    if (!isOwner) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Only board owners can unassign members from cards')
+    }
+
+    // Kiểm tra member có được assign không
+    if (!targetCard.memberIds.includes(memberId)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Member is not assigned to this card')
+    }
+
+    // Unassign member khỏi card
+    const updatedCard = await cardModel.unassignMember(cardId, memberId)
+    return updatedCard
+  } catch (error) { throw error }
+}
 
 export const cardService = {
   createNew,
   update,
-  deleteItem
+  deleteItem,
+  assignMember,
+  unassignMember
 }

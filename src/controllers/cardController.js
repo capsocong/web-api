@@ -1,5 +1,6 @@
 import { StatusCodes } from 'http-status-codes'
 import { cardService } from '~/services/cardService'
+import { DEFAULT_LABELS } from '~/utils/labelConstants'
 
 const createNew = async (req, res, next) => {
   try {
@@ -23,8 +24,38 @@ const deleteItem = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const getDefaultLabels = async (req, res, next) => {
+  try {
+    res.status(StatusCodes.OK).json(DEFAULT_LABELS)
+  } catch (error) { next(error) }
+}
+
+const assignMember = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const cardId = req.params.id
+    const { memberId } = req.body
+    
+    const updatedCard = await cardService.assignMember(userId, cardId, memberId)
+    res.status(StatusCodes.OK).json(updatedCard)
+  } catch (error) { next(error) }
+}
+
+const unassignMember = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
+    const cardId = req.params.id
+    const { memberId } = req.body
+    const updatedCard = await cardService.unassignMember(userId, cardId, memberId)
+    res.status(StatusCodes.OK).json(updatedCard)
+  } catch (error) { next(error) }
+}
+
 export const cardController = {
   createNew,
   update,
-  deleteItem
+  deleteItem,
+  getDefaultLabels,
+  assignMember,
+  unassignMember
 }

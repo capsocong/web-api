@@ -19,4 +19,11 @@ Router.route('/:id')
 Router.route('/supports/moving_card')
   .put(authMiddleware.isAuthorized, boardValidation.moveCardToDifferentColumn, boardController.moveCardToDifferentColumn)
 
+// Member management routes
+Router.route('/:id/members/:memberId/role')
+  .put(authMiddleware.isAuthorized, boardOwnerMiddleware.isOwner, boardController.updateMemberRole)
+
+Router.route('/:id/members/:memberId')
+  .delete(authMiddleware.isAuthorized, boardOwnerMiddleware.isOwner, boardController.removeMember)
+
 export const boardRoute = Router

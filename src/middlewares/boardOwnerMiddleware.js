@@ -2,7 +2,7 @@ import { StatusCodes } from 'http-status-codes'
 import { boardModel } from '~/models/boardModel'
 import ApiError from '~/utils/ApiError'
 
-// Middleware kiểm tra quyền owner của board
+// Middleware kiểm tra quyền owner của board - chỉ owner mới được sửa/xóa board
 const isOwner = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
@@ -25,7 +25,7 @@ const isOwner = async (req, res, next) => {
     req.board = board
     next()
   } catch (error) {
-    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi kiểm tra quyền sở hữu bảng'))
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR))
   }
 }
 

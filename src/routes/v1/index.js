@@ -26,4 +26,5 @@ Router.use('/users', userRoute )
 
 /** Invitation APIs */
 Router.use('/invitations', invitationRoute)
+
 export const APIs_V1 = Router

@@ -97,6 +97,42 @@ const deleteOneById = async (cardId) => {
   } catch (error) { throw new Error(error) }
 }
 
+const countCards = async (query) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME)
+      .countDocuments({ ...query, _destroy: false })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const assignMember = async (cardId, memberId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { 
+        $push: { memberIds: memberId },
+        $set: { updatedAt: Date.now() }
+      },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw new Error(error) }
+}
+
+const unassignMember = async (cardId, memberId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { 
+        $pull: { memberIds: memberId },
+        $set: { updatedAt: Date.now() }
+      },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw new Error(error) }
+}
+
 export const cardModel = {
   CARD_COLLECTION_NAME,
   CARD_COLLECTION_SCHEMA,
@@ -105,5 +141,8 @@ export const cardModel = {
   update,
   deleteManyByColumnId,
   deleteManyByBoardId,
-  deleteOneById
+  deleteOneById,
+  countCards,
+  assignMember,
+  unassignMember
 }
