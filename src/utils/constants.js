@@ -6,8 +6,8 @@ export const WHITELIST_DOMAINS = [
   'https://wms-web-sigma.vercel.app'
 ]
 export const BOARD_TYPES = {
-  PUBLIC: 'public',
-  PRIVATE: 'private'
+  PUBLIC: 'Công khai',
+  PRIVATE: 'Riêng tư'
 }
 
 export const WEBSITE_DOMAIN = (env.BUILD_MODE === 'production') ? env.WEBSITE_DOMAIN_PRODUCTION : env.WEBSITE_DOMAIN_DEVELOPMENT

@@ -8,7 +8,7 @@ const isAuthorized = async (req, res, next) => {
   const clientAccessToken = req.cookies?.accessToken
 
   if (!clientAccessToken) {
-    next(new ApiError(StatusCodes.UNAUTHORIZED, 'UNAUTHORIZED access token not found'))
+    next(new ApiError(StatusCodes.UNAUTHORIZED, 'UNAUTHORIZED không tìm thấy access token'))
     return
   }
 
@@ -22,7 +22,7 @@ const isAuthorized = async (req, res, next) => {
   } catch (error) {
     // nếu access token không hợp lệ hoặc đã hết hạn
     if (error?.message?.includes('jwt expired')) {
-      next(new ApiError(StatusCodes.GONE, 'Need to refresh token'))
+      next(new ApiError(StatusCodes.GONE, 'cần làm mới token'))
       return
     }
     // nếu như access token không hợp lệ trả về mã lỗi 401 UNAUTHORIZED
